@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<head>
+    <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?v=3.exp"></script>
+    <script type="text/javascript" src="js/CustomGoogleMapMarker.js"></script>
+    <script type="text/javascript" src="js/jquery.js"></script>
+    <script type="text/javascript" src="js/canvasjs.min.js"></script>
+    <link href='https://fonts.googleapis.com/css?family=Londrina+Shadow' rel='stylesheet' type='text/css'>
+    <script type="text/javascript">
+
+        jQuery(function($) {
+            // Asynchronously Load the map API
+            var script = document.createElement('script');
+            script.src = "http://maps.googleapis.com/maps/api/js?sensor=false&callback=initialize";
+            document.body.appendChild(script);
+        });
+
+        function initialize() {
+            var map;
+            var bounds = new google.maps.LatLngBounds();
+            var mapOptions = {
+                mapTypeId: 'terrain'
+            };
+
+            // Display a map on the page
+            map = new google.maps.Map(document.getElementById("map_canvas"), mapOptions);
+            map.setTilt(45);
+
+            // Multiple Markers
+            var markers = [
+                ['194313, LOWELL', 42.633425,-71.316172],
+                ['194105, LAWRENCE', 42.707035, -71.163114],
+                ['190120, AMHERST', 42.373222, -72.519854],
+                ['190736, EAST MILTON BLUE HILL OBSERVATORY', 42.407211, -71.382437],
+                ['191447, CHESTNUT HILL', 42.330380, -71.166187],
+                ['192975, FRAMINGHAM', 42.279286, -71.416156],
+                ['196938, ROCHESTER', 41.78333,  -70.91667],
+                ['194502, MARBLEHEAD', 42.5, -70.86667], 
+                ['193276, GROVELAND', 42.75,-71.05],
+                ['195984, NORTON', 41.9928,  -71.1666],
+                ['196486, PLYMOUTH KINGSTON',41.993275, -70.728478],
+                ['198367, TAUNTON',41.900101, -71.089767],
+                ['191561, CLINTON',42.416763, -71.682908],
+                ['190218, ASHLAND', 42.261207 , -71.463396],
+                ['190860, BROCKTON', 42.083433 ,-71.018379],
+                ['192642, FALL RIVER', 41.701491 , -71.155045],
+                ['192806, FITCHBURG', 42.583423, -71.802296],
+                ['194012, LAKE COCHITUATE', 42.317284 ,-71.377984],
+                ['194744, MIDDLETON', 42.595094, -71.016164],
+                ['195246, NEW BEDFORD', 41.636215 ,-70.934205],
+                ['192451, EAST WAREHAM', 41.760475 , -70.673967],
+                ['199360, WESTON',42.366763 ,-71.303113] ,
+                ['190049, ADAMS', 42.624225 , -73.117434]               
+
+            ];
+
+            // Info Window Content
+            var infoWindowContent = [
+                ['<a>194313 - LOWELL</a>'],
+                ['<a>194105 - LAWRENCE</a>'],
+                ['<a>190120 - AMHERST</a>'],
+                ['<a>190736 - EAST MILTON BLUE HILL OBSERVATORY</a>'],
+                ['<a>191447 - CHESTNUT HILL</a>'],
+                ['<a>192975 - FRAMINGHAM</a>'],
+                ['<a>196938 - ROCHESTER</a>'],
+                ['<a>194502 - MARBLEHEAD</a>'], 
+                ['<a>193276 - GROVELAND</a>'],
+                ['<a>195984 - NORTON</a>'],
+                ['<a>196486 - PLYMOUTH KINGSTON</a>'],
+                ['<a>198367 - TAUNTON</a>'],
+                ['<a>191561 - CLINTON</a>'],
+                ['<a>190218 - ASHLAND</a>'],
+                ['<a>190860 - BROCKTON</a>'],
+                ['<a>192642 - FALL RIVER</a>'],
+                ['<a>192806 - FITCHBURG</a>'],
+                ['<a>194012 - LAKE COCHITUATE</a>'],
+                ['<a>194744 - MIDDLETON</a>'],
+                ['<a>195246 - NEW BEDFORD</a>'],
+                ['<a>192451 - EAST WAREHAM</a>'],
+                ['<a>199360 - WESTON</a>'],
+                ['<a>190049 - ADAMS</a>']
+
+            ];
+
+            // Display multiple markers on a map
+            var infoWindow = new google.maps.InfoWindow(), marker, i;
+
+            // Loop through our array of markers & place each one on the map
+            for( i = 0; i < markers.length; i++ ) {
+                var position = new google.maps.LatLng(markers[i][1], markers[i][2]);
+                bounds.extend(position);
+                marker = new google.maps.Marker({
+                    position: position,
+                    map: map,
+                    title: markers[i][0]
+                });
+
+                // Allow each marker to have an info window
+                google.maps.event.addListener(marker, 'click', (function(marker, i) {
+                    return function() {
+                        infoWindow.setContent(infoWindowContent[i][0]);
+                        infoWindow.open(map, marker);
+                    }
+                })(marker, i));
+
+                // Automatically center the map fitting all markers on the screen
+                map.fitBounds(bounds);
+            }
+
+            // Override our map zoom level once our fitBounds function runs (Make sure it only runs once)
+            var boundsListener = google.maps.event.addListener((map), 'bounds_changed', function(event) {
+                this.setZoom(8);
+                google.maps.event.removeListener(boundsListener);
+            });
+
+        }
+    
+    $(document).ready(function () {
+
+        $.ajax({
+            type: "GET",
+            url: "output_files/MinTempPerYearStation.csv",
+            dataType: "text",
+            success: function (data) { processData(data); }
+        });
+
+        function processData(allText) {
+            var allLinesArray = allText.split('\n');
+            var station = processForm();
+            if (allLinesArray.length > 0) {
+                var dataPoints = [];
+                for (var i = 0; i <= allLinesArray.length - 1; i++) {
+                     var rowData = allLinesArray[i].split(',');
+                   if(rowData && rowData.length > 1 )
+                     if(rowData[1].trim()==station && rowData[2].trim()!= "-9999.0"){
+                            dataPoints.push({ label: rowData[0], y: parseInt(rowData[2]) });
+                      }
+                   }
+                chart.options.data[0].dataPoints = dataPoints;
+                chart.render();
+            }
+
+        }
+
+
+        var chart = new CanvasJS.Chart("chartContainer", {
+            theme: "theme2",
+            title: {
+                text: "Min Temp Per Year Per Station - "+processForm()
+            },
+            data: [
+            {
+                type: "column",
+                dataPoints: []
+            }
+            ]
+        });
+
+    });
+    function processForm()
+      {
+        var parameters = location.search.substring(1).split("&");
+        var temp = parameters[0].split("=");
+        l = unescape(temp[1]);
+        return l;
+      }
+    </script>
+
+    <style>
+        body {
+            font-family: helvetica, sans-serif;
+            margin: 0 auto;
+            background: #FFFFFF;
+        }
+        div {
+            background-size: cover;
+            position: relative;
+            border-radius: 12px;
+        }
+        h1 {
+            font-family: 'Londrina Shadow', cursive;
+            text-align: center;
+            font-size: 75px;
+            color: #aaaaaa;
+            margin: 60px 0 0 0;
+        }
+        h2 {
+            text-align: center;
+            color: #bbbbbb;
+            margin: 0px 0 70px 0;
+        }
+        p {
+          margin: 0 auto;
+          padding: 20px 20px 20px;
+        }
+
+        small {
+            opacity: 0;
+        }
+
+        .left {
+            float: left;
+            margin-left: 20px;
+            width: 30%;
+        }
+        .right {
+            float: right;
+            margin-right: 20px;
+            width: 30%;
+        }
+        .map {
+            display: inline-block;
+            margin-left: 20px;
+        }
+        .content{
+            border-radius: 25px;
+            border: 2px solid #00ccff;
+            width: 400px;
+            height: 400px;
+        }
+        .chart{
+            height: 400px;            
+            margin: 40px 40px 40px 40px;
+            border-radius: 20px;
+            border: 2px solid #00ccff;
+
+        }
+        #map_wrapper {
+            height: 400px;
+            width: 800px;
+        }
+
+        #map_canvas {
+            width: 100%;
+            height: 100%;
+        }
+        @media (max-width: 500px) {
+            h1 {
+                font-size: 50px;
+                margin-top: 20px;
+                line-height: 40px;
+            }
+            h2 {
+                font-size: 20px;
+                margin: 20px 0 30px 0;
+            }
+            div {
+                margin: 20px 12px 0 12px;
+            }
+            p {
+                font-size: 20px;
+                line-height: 24px;
+            }
+            small {
+                font-size: 16px;
+            }
+        }
+
+    </style>
+
+</head>
+
+<body>
+<h1>WeatherMapper</h1><br/>
+<h2>by: Shashank, Nikhil & Vignesh</h2>
+
+<div id="map_wrapper" class="map">
+    <div id="map_canvas" class="mapping"></div>
+</div>
+
+<div class="right content">
+  <center>
+    <p>
+        <form id="inp_form" action="" onsubmit="this.action=myFunction()" method="GET">
+        Station name:   <input type="text" name="s_no"><br/>
+        Type of graph: <select id="opt">
+        <option value="DailySnowInAllStations.html">DailySnowInAllStations</option>
+        <option value="DailySnowPerYearStation.html">DailySnowPerYearStation</option>
+        <option value="MaxRainPerYearStation.html">MaxRainPerYearStation</option>
+        <option value="MaxSnowPerYearStation.html">MaxSnowPerYearStation</option>
+        <option value="MaxTempInAllStations.html">MaxTempInAllStations</option>
+        <option value="MaxTempPerYearStation.html">MaxTempPerYearStation</option>
+        <option value="MinRainPerYearStation.html">MinRainPerYearStation</option>
+        <option value="MinSnowPerYearStation.html">MinSnowPerYearStation</option>
+        <option value="MinTempInAllStations.html">MinTempInAllStations</option>
+        <option value="MinTempPerYearStation.html">MinTempPerYearStation</option>
+        <option value="SnowInAllStations.html">SnowInAllStations</option>
+        <option value="TotalRainInAllStations.html">TotalRainInAllStations</option>
+        <option value="TotalRainPerYearStation.html">TotalRainPerYearStation</option>
+        <option value="TotalSnowPerYearStation.html">TotalSnowPerYearStation</option>
+        </select>
+        </br></br>
+        <input type="submit" value="Submit">
+      </form>
+      <script>
+        function myFunction() {
+            var s = document.getElementById("opt").value;                                    
+           return s;        
+        }
+        </script>
+    </p>
+  </center>
+</div>
+
+<div id="chartContainer" class="chart"></div>
+
+
+</body>
+</html>
